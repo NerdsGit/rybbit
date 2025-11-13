@@ -114,6 +114,7 @@ services:
       traefik.http.routers.eye-client.tls: "true"
       traefik.http.routers.eye-client.tls.certresolver: "letsencrypt"
       traefik.http.services.eye-client.loadbalancer.server.port: "3002"
+      traefik.http.routers.eye-client.priority: "1000"
 
       # 🔐 ForwardAuth middleware (Authentik)
       # IMPORTANT: 'authentik' here must be the *container name* of your Authentik outpost,
