@@ -101,6 +101,7 @@ services:
       traefik.http.routers.eye-client.entrypoints: "https"
       traefik.http.routers.eye-client.tls: "true"
       traefik.http.routers.eye-client.tls.certresolver: "letsencrypt"
+      traefik.http.routers.eye-client.service: "eye-client"
       traefik.http.services.eye-client.loadbalancer.server.port: "3002"
 
       # 🔐 ربط الـ Router بالـ Middleware
