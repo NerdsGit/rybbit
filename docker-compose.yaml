@@ -1,0 +1,111 @@
+version: "3.8"
+
+networks:
+  coolify:
+    external: true
+
+volumes:
+  clickhouse-data:
+  postgres-data:
+
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.4.2
+    container_name: clickhouse
+    volumes:
+      - ${DOCKER_DATA}/rybbit/clickhouse-data:/var/lib/clickhouse
+      # optional: mount your config dir if you have it
+      # - ${DOCKER_DATA}/rybbit/clickhouse-config:/etc/clickhouse-server/config.d
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-analytics}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-frog}
+    healthcheck:
+      test: ["CMD","wget","--no-verbose","--tries=1","--spider","http://localhost:8123/ping"]
+      interval: 3s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - coolify
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17.4
+    container_name: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-frog}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-frog}
+      POSTGRES_DB: ${POSTGRES_DB:-analytics}
+    volumes:
+      - ${DOCKER_DATA}/rybbit/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 3s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - coolify
+    restart: unless-stopped
+
+  backend:
+    image: ghcr.io/rybbit-io/rybbit-backend:v1.5.1
+    container_name: rybbit_backend
+    environment:
+      NODE_ENV: production
+      CLICKHOUSE_HOST: http://clickhouse:8123
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-analytics}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-frog}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: ${POSTGRES_DB:-analytics}
+      POSTGRES_USER: ${POSTGRES_USER:-frog}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-frog}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BASE_URL: https://eye.github.sa
+      DISABLE_SIGNUP: ${DISABLE_SIGNUP:-false}
+      DISABLE_TELEMETRY: ${DISABLE_TELEMETRY:-false}
+      # MAPBOX_TOKEN: ${MAPBOX_TOKEN}
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      postgres:
+        condition: service_started
+    expose:
+      - "3001"
+    networks:
+      - coolify
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "coolify"
+      traefik.http.routers.eye-backend.rule: "Host(`eye.github.sa`) && PathPrefix(`/api`)"
+      traefik.http.routers.eye-backend.entrypoints: "https"
+      traefik.http.routers.eye-backend.tls: "true"
+      traefik.http.routers.eye-backend.tls.certresolver: "letsencrypt"
+      traefik.http.services.eye-backend.loadbalancer.server.port: "3001"
+    restart: unless-stopped
+
+  client:
+    image: ghcr.io/rybbit-io/rybbit-client:v1.5.1
+    container_name: rybbit_client
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_BACKEND_URL: https://eye.github.sa/api
+      NEXT_PUBLIC_DISABLE_SIGNUP: ${DISABLE_SIGNUP:-false}
+      # BASE_URL env is not needed for client here
+    depends_on:
+      - backend
+    expose:
+      - "3002"
+    networks:
+      - coolify
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "coolify"
+      traefik.http.routers.eye-client.rule: "Host(`eye.github.sa`)"
+      traefik.http.routers.eye-client.entrypoints: "https"
+      traefik.http.routers.eye-client.tls: "true"
+      traefik.http.routers.eye-client.tls.certresolver: "letsencrypt"
+      traefik.http.services.eye-client.loadbalancer.server.port: "3002"
+    restart: unless-stopped
