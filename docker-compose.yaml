@@ -85,16 +85,6 @@ services:
       traefik.http.routers.eye-backend.tls.certresolver: "letsencrypt"
       traefik.http.services.eye-backend.loadbalancer.server.port: "3001"
       
-      # === ForwardAuth middleware (authentik) ===
-      traefik.http.middlewares.ak-forwardauth.forwardauth.address: "https://auth.github.sa/outpost.goauthentik.io/auth/traefik"
-      # لو شهادتك داخلية/غير موثّقة، فعّل السطر التالي (وإلا خلّه مشمّع):
-      # traefik.http.middlewares.ak-forwardauth.forwardauth.tls.insecureSkipVerify: "true"
-      traefik.http.middlewares.ak-forwardauth.forwardauth.trustForwardHeader: "true"
-      # خلّي Traefik يمرّر هذي الهيدرز من authentik للتطبيق (احتفظ بما تحتاجه فقط)
-      traefik.http.middlewares.ak-forwardauth.forwardauth.authResponseHeaders: "X-authentik-username,X-authentik-groups,X-authentik-email,X-authentik-jwt"
-
-      # طبّق الـ middleware على الروتر
-      traefik.http.routers.eye-backend.middlewares: "ak-forwardauth@docker"
     restart: unless-stopped
 
   client:
@@ -105,6 +95,20 @@ services:
       NEXT_PUBLIC_BACKEND_URL: https://eye.github.sa/api
       NEXT_PUBLIC_DISABLE_SIGNUP: ${DISABLE_SIGNUP:-false}
       # BASE_URL env is not needed for client here
+      traefik.http.routers.eye-client.rule: "Host(`eye.github.sa`)"
+      traefik.http.routers.eye-client.entrypoints: "https"
+      traefik.http.routers.eye-client.tls: "true"
+      traefik.http.routers.eye-client.tls.certresolver: "letsencrypt"
+      traefik.http.routers.eye-client.service: "eye-client"
+      traefik.http.services.eye-client.loadbalancer.server.port: "3002"
+
+      # 👇 هنا نربط Middleware حق authentik بهذا الـ Router فقط
+      traefik.http.routers.eye-client.middlewares: "ak-forwardauth@docker"
+
+      # 👇 تعريف الـ ForwardAuth middleware
+      traefik.http.middlewares.ak-forwardauth.forwardauth.address: "https://auth.github.sa/outpost.goauthentik.io/auth/traefik"
+      traefik.http.middlewares.ak-forwardauth.forwardauth.trustForwardHeader: "true"
+      traefik.http.middlewares.ak-forwardauth.forwardauth.authResponseHeaders: "X-authentik-username,X-authentik-groups,X-authentik-email,X-authentik-jwt"
     depends_on:
       - backend
     expose:
