@@ -81,7 +81,7 @@ services:
       - traefik.docker.network=coolify
       - traefik.http.routers.rybbit-backend.entrypoints=https
       - traefik.http.routers.rybbit-backend.tls=true
-      - traefik.http.routers.rybbit-backend.rule=Host(`${DOMAIN_NAME}`) && (Path(`/api`) || PathPrefix(`/api/`))
+      - traefik.http.routers.rybbit-backend.rule=Host(`${SERVICE_FQDN_BACKEND}`) && (Path(`/api`) || PathPrefix(`/api/`))
       - traefik.http.services.rybbit-backend.loadbalancer.server.port=3001
       - traefik.http.routers.rybbit-backend.priority=100
       # forward headers correctly so Rybbit knows it's https + correct host
