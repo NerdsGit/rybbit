@@ -86,7 +86,7 @@ services:
       - traefik.http.routers.rybbit-backend.priority=100
       # forward headers correctly so Rybbit knows it's https + correct host
       - traefik.http.middlewares.rybbit-forward-headers.headers.customrequestheaders.X-Forwarded-Proto=https
-      - traefik.http.middlewares.rybbit-forward-headers.headers.customrequestheaders.X-Forwarded-Host=${DOMAIN_NAME}
+      - traefik.http.middlewares.rybbit-forward-headers.headers.customrequestheaders.X-Forwarded-Host=${SERVICE_FQDN_BACKEND}
       - traefik.http.routers.rybbit-backend.middlewares=rybbit-forward-headers
       
     restart: unless-stopped
