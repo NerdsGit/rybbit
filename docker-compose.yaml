@@ -77,18 +77,19 @@ services:
     networks:
       - coolify
     labels:
-      traefik.enable: "true"
-      traefik.docker.network: "coolify"
-      traefik.http.routers.rybbit-backend.entrypoints: "https"
-      traefik.http.routers.rybbit-backend.tls: "true"
-      traefik.http.routers.rybbit-backend.rule: "Host(`Host(`eye.github.sa`) && PathPrefix(`/api/`))"
-      traefik.http.services.rybbit-backend.loadbalancer.server.port: "3001"
-      
-      # forward headers correctly so Rybbit knows it's https + correct host
-      traefik.http.middlewares.rybbit-forward-headers.headers.customrequestheaders.X-Forwarded-Proto: "https"
-      traefik.http.middlewares.rybbit-forward-headers.headers.customrequestheaders.X-Forwarded-Host: "Host(`eye.github.sa`)"
-      traefik.http.routers.rybbit-backend.middlewares=rybbit-forward-headers
-      
+      - traefik.enable=true
+      - traefik.docker.network=coolify
+      - traefik.http.routers.eye-backend.entrypoints=https
+      - traefik.http.routers.eye-backend.tls=true
+      # 👇 BACKEND ONLY FOR /api
+      - traefik.http.routers.eye-backend.rule=Host(`eye.github.sa`) && PathPrefix(`/api/`))
+      - traefik.http.services.eye-backend.loadbalancer.server.port=3001
+      - traefik.http.routers.eye-backend.priority=100
+      - traefik.http.middlewares.rybbit-forward-headers.headers.customrequestheaders.X-Forwarded-Proto=https
+      - traefik.http.middlewares.rybbit-forward-headers.headers.customrequestheaders.X-Forwarded-Host=eye.github.sa
+      - traefik.http.routers.eye-backend.middlewares=rybbit-forward-headers
+
+
     restart: unless-stopped
 
   client:
