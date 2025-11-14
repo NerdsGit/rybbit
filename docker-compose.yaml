@@ -77,17 +77,17 @@ services:
     networks:
       - coolify
     labels:
-      - traefik.enable=true
-      - traefik.docker.network=coolify
-      - traefik.http.routers.rybbit-backend.entrypoints=https
-      - traefik.http.routers.rybbit-backend.tls=true
-      - traefik.http.routers.rybbit-backend.rule=Host(`${SERVICE_FQDN_BACKEND}`) && (Path(`/api`) || PathPrefix(`/api/`))
-      - traefik.http.services.rybbit-backend.loadbalancer.server.port=3001
-      - traefik.http.routers.rybbit-backend.priority=100
+      traefik.enable: true
+      traefik.docker.network: "coolify"
+      traefik.http.routers.rybbit-backend.entrypoints: "https"
+      traefik.http.routers.rybbit-backend.tls: true
+      traefik.http.routers.rybbit-backend.rule: "Host(`${SERVICE_FQDN_BACKEND}`) && (Path(`/api`) || PathPrefix(`/api/`))"
+      traefik.http.services.rybbit-backend.loadbalancer.server.port: "3001"
+      
       # forward headers correctly so Rybbit knows it's https + correct host
-      - traefik.http.middlewares.rybbit-forward-headers.headers.customrequestheaders.X-Forwarded-Proto=https
-      - traefik.http.middlewares.rybbit-forward-headers.headers.customrequestheaders.X-Forwarded-Host=${SERVICE_FQDN_BACKEND}
-      - traefik.http.routers.rybbit-backend.middlewares=rybbit-forward-headers
+      traefik.http.middlewares.rybbit-forward-headers.headers.customrequestheaders.X-Forwarded-Proto: "https"
+      traefik.http.middlewares.rybbit-forward-headers.headers.customrequestheaders.X-Forwarded-Host: "${SERVICE_FQDN_BACKEND}"
+      traefik.http.routers.rybbit-backend.middlewares=rybbit-forward-headers
       
     restart: unless-stopped
 
@@ -113,22 +113,16 @@ services:
       traefik.docker.network: "coolify"
 
       # 🔁 Router for the frontend (eye.github.sa)
-      traefik.http.routers.eye-client.rule: "Host(`eye.github.sa`) && !PathPrefix(`/_next/`)"
+      traefik.http.routers.eye-client.rule: "Host(`eye.github.sa`)"
       traefik.http.routers.eye-client.entrypoints: "https"
       traefik.http.routers.eye-client.tls: "true"
       traefik.http.routers.eye-client.tls.certresolver: "letsencrypt"
       traefik.http.services.eye-client.loadbalancer.server.port: "3002"
-      traefik.http.routers.eye-client.priority: "10"
+      
       traefik.http.middlewares.ak-forwardauth.forwardauth.address: "http://authentik:9000/outpost.goauthentik.io/auth/traefik"
       traefik.http.middlewares.ak-forwardauth.forwardauth.trustForwardHeader: true
       traefik.http.middlewares.ak-forwardauth.forwardauth.authResponseHeaders: "X-authentik-username,X-authentik-groups,X-authentik-email,X-authentik-jwt"
       traefik.http.routers.rybbit-client.middlewares: "ak-forwardauth"
-            # =============================================
-      # 📁 STATIC FILES ROUTER (required for Next.js)
-      # =============================================
-      traefik.http.routers.eye-static.rule: "Host(`${DOMAIN_NAME}`) && PathPrefix(`/_next/`)"
-      traefik.http.routers.eye-static.entrypoints: "https"
-      traefik.http.routers.eye-static.tls: true
-      traefik.http.services.eye-static.loadbalancer.server.port: "3002"
+   
 
     restart: unless-stopped
