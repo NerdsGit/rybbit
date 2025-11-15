@@ -78,19 +78,13 @@ services:
       - coolify
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=coolify"
 
-      # backend فقط على /api
+      # 👇 backend فقط على /api في eye.github.sa
       - "traefik.http.routers.eye-backend.rule=Host(`eye.github.sa`) && (Path(`/api`) || PathPrefix(`/api/`))"
       - "traefik.http.routers.eye-backend.entrypoints=https"
       - "traefik.http.routers.eye-backend.tls=true"
       - "traefik.http.routers.eye-backend.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.eye-backend.priority=100"
       - "traefik.http.services.eye-backend.loadbalancer.server.port=3001"
-
-      - "traefik.http.middlewares.rybbit-forward-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
-      - "traefik.http.middlewares.rybbit-forward-headers.headers.customrequestheaders.X-Forwarded-Host=eye.github.sa"
-      - "traefik.http.routers.eye-backend.middlewares=rybbit-forward-headers"
 
     restart: unless-stopped
 
@@ -110,24 +104,12 @@ services:
       - coolify
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=coolify"
 
-      # 🔐 Router رئيسي للواجهة (محمي) - يستثني /_next/ عشان JS
-      - "traefik.http.routers.eye-client.rule=Host(`eye.github.sa`) && !PathPrefix(`/_next/`)"
+      # 🚪 راوتر الواجهة بدون Auth (مبدئياً)
+      - "traefik.http.routers.eye-client.rule=Host(`eye.github.sa`)"
       - "traefik.http.routers.eye-client.entrypoints=https"
       - "traefik.http.routers.eye-client.tls=true"
       - "traefik.http.routers.eye-client.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.eye-client.priority=50"
       - "traefik.http.services.eye-client.loadbalancer.server.port=3002"
-
-      # 🔗 هنا نربط Router بالميدل وير Authentik المركزي
-      - "traefik.http.routers.eye-client.middlewares=authentik-forwardauth@file"
-
-      # 📁 Router للـ static assets (Next.js) بدون Auth
-      - "traefik.http.routers.eye-static.rule=Host(`eye.github.sa`) && PathPrefix(`/_next/`)"
-      - "traefik.http.routers.eye-static.entrypoints=https"
-      - "traefik.http.routers.eye-static.tls=true"
-      - "traefik.http.routers.eye-static.tls.certresolver=letsencrypt"
-      - "traefik.http.services.eye-static.loadbalancer.server.port=3002"
 
     restart: unless-stopped
