@@ -111,14 +111,6 @@ services:
       - "traefik.http.routers.eye-client.tls=true"
       - "traefik.http.routers.eye-client.tls.certresolver=letsencrypt"
       - "traefik.http.services.eye-client.loadbalancer.server.port=3002"
-          labels:
-      - "traefik.enable=true"
-
-      - "traefik.http.routers.eye-client.rule=Host(`eye.github.sa`)"
-      - "traefik.http.routers.eye-client.entrypoints=https"
-      - "traefik.http.routers.eye-client.tls=true"
-      - "traefik.http.routers.eye-client.tls.certresolver=letsencrypt"
-      - "traefik.http.services.eye-client.loadbalancer.server.port=3002"
 
       # 👇 هذا هو السطر الوحيد اللي يضيف Authentik
       - "traefik.http.routers.eye-client.middlewares=authentik-forwardauth@docker"
