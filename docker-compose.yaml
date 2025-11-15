@@ -80,7 +80,7 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=coolify"
 
-      # 🔁 Backend router: ONLY /api on eye.github.sa
+      # backend فقط على /api
       - "traefik.http.routers.eye-backend.rule=Host(`eye.github.sa`) && (Path(`/api`) || PathPrefix(`/api/`))"
       - "traefik.http.routers.eye-backend.entrypoints=https"
       - "traefik.http.routers.eye-backend.tls=true"
@@ -88,7 +88,6 @@ services:
       - "traefik.http.routers.eye-backend.priority=100"
       - "traefik.http.services.eye-backend.loadbalancer.server.port=3001"
 
-      # Forward headers so backend knows real scheme/host
       - "traefik.http.middlewares.rybbit-forward-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
       - "traefik.http.middlewares.rybbit-forward-headers.headers.customrequestheaders.X-Forwarded-Host=eye.github.sa"
       - "traefik.http.routers.eye-backend.middlewares=rybbit-forward-headers"
@@ -96,16 +95,13 @@ services:
     restart: unless-stopped
 
 
-
-
-   client:
+  client:
     image: ghcr.io/rybbit-io/rybbit-client:v1.5.1
     container_name: rybbit_client
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_BACKEND_URL: https://eye.github.sa/api
       NEXT_PUBLIC_DISABLE_SIGNUP: ${DISABLE_SIGNUP:-false}
-      # BASE_URL not needed for client
     depends_on:
       - backend
     expose:
@@ -116,8 +112,7 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=coolify"
 
-      # 🔐 Main app router (protected by Authentik)
-      # كل شيء على eye.github.sa ما عدا /_next/* يروح هنا
+      # 🔐 Router رئيسي للواجهة (محمي) - يستثني /_next/ عشان JS
       - "traefik.http.routers.eye-client.rule=Host(`eye.github.sa`) && !PathPrefix(`/_next/`)"
       - "traefik.http.routers.eye-client.entrypoints=https"
       - "traefik.http.routers.eye-client.tls=true"
@@ -125,16 +120,10 @@ services:
       - "traefik.http.routers.eye-client.priority=50"
       - "traefik.http.services.eye-client.loadbalancer.server.port=3002"
 
-      # 🔐 ForwardAuth → Authentik via PUBLIC domain
-      # (auth.github.sa already has the outpost exposed)
-      - "traefik.http.middlewares.eye-ak-forwardauth.forwardauth.address=https://auth.github.sa/outpost.goauthentik.io/auth/traefik"
-      - "traefik.http.middlewares.eye-ak-forwardauth.forwardauth.trustForwardHeader=true"
-      - "traefik.http.middlewares.eye-ak-forwardauth.forwardauth.authResponseHeaders=X-authentik-username,X-authentik-groups,X-authentik-email,X-authentik-jwt"
+      # 🔗 هنا نربط Router بالميدل وير Authentik المركزي
+      - "traefik.http.routers.eye-client.middlewares=authentik-forwardauth@file"
 
-      # Attach middleware to eye-client router
-      - "traefik.http.routers.eye-client.middlewares=eye-ak-forwardauth"
-
-      # 📁 Static assets for Next.js (NOT protected, otherwise white page)
+      # 📁 Router للـ static assets (Next.js) بدون Auth
       - "traefik.http.routers.eye-static.rule=Host(`eye.github.sa`) && PathPrefix(`/_next/`)"
       - "traefik.http.routers.eye-static.entrypoints=https"
       - "traefik.http.routers.eye-static.tls=true"
