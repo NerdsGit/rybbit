@@ -49,6 +49,7 @@ services:
       - coolify
     restart: unless-stopped
 
+
   backend:
     image: ghcr.io/rybbit-io/rybbit-backend:v1.5.1
     container_name: rybbit_backend
@@ -66,7 +67,6 @@ services:
       BASE_URL: https://eye.github.sa
       DISABLE_SIGNUP: ${DISABLE_SIGNUP:-false}
       DISABLE_TELEMETRY: ${DISABLE_TELEMETRY:-false}
-      # MAPBOX_TOKEN: ${MAPBOX_TOKEN}
     depends_on:
       clickhouse:
         condition: service_healthy
@@ -77,20 +77,21 @@ services:
     networks:
       - coolify
     labels:
-      - traefik.enable=true
-      - traefik.docker.network=coolify
-      - traefik.http.routers.eye-backend.entrypoints=https
-      - traefik.http.routers.eye-backend.tls=true
-      # 👇 BACKEND ONLY FOR /api
-      - traefik.http.routers.eye-backend.rule=Host(`eye.github.sa`)
-      - traefik.http.services.eye-backend.loadbalancer.server.port=3001
-      - traefik.http.routers.eye-backend.priority=100
-      - traefik.http.middlewares.rybbit-forward-headers.headers.customrequestheaders.X-Forwarded-Proto=https
-      - traefik.http.middlewares.rybbit-forward-headers.headers.customrequestheaders.X-Forwarded-Host=eye.github.sa
-      - traefik.http.routers.eye-backend.middlewares=rybbit-forward-headers
-
-
+      - "traefik.enable=true"
+      - "traefik.docker.network=coolify"
+      - "traefik.http.routers.eye-backend.entrypoints=https"
+      - "traefik.http.routers.eye-backend.tls=true"
+      # 👇 مهم: backend بس على /api
+      - "traefik.http.routers.eye-backend.rule=Host(`eye.github.sa`) && (Path(`/api`) || PathPrefix(`/api/`))"
+      - "traefik.http.services.eye-backend.loadbalancer.server.port=3001"
+      - "traefik.http.routers.eye-backend.priority=100"
+      - "traefik.http.middlewares.rybbit-forward-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.middlewares.rybbit-forward-headers.headers.customrequestheaders.X-Forwarded-Host=eye.github.sa"
+      - "traefik.http.routers.eye-backend.middlewares=rybbit-forward-headers"
     restart: unless-stopped
+
+
+
 
   client:
     image: ghcr.io/rybbit-io/rybbit-client:v1.5.1
@@ -100,8 +101,6 @@ services:
       NEXT_PUBLIC_BACKEND_URL: https://eye.github.sa/api
       NEXT_PUBLIC_DISABLE_SIGNUP: ${DISABLE_SIGNUP:-false}
       # BASE_URL env is not needed for client here
-            # Router للواجهة
-
     depends_on:
       - backend
     expose:
@@ -109,21 +108,20 @@ services:
     networks:
       - coolify
     labels:
-        
       # Enable Traefik for this service
-      traefik.enable: "true"
-      traefik.docker.network: "coolify"
+      - "traefik.enable=true"
+      - "traefik.docker.network=coolify"
 
-      # 🔁 Router for the frontend (eye.github.sa)
-      -traefik.http.routers.eye-client.rule=Host(`eye.github.sa`)
-      -traefik.http.routers.eye-client.entrypoints=https
-      -traefik.http.routers.eye-client.tls=true
-      -traefik.http.routers.eye-client.tls.certresolver=letsencrypt
-      -traefik.http.services.eye-client.loadbalancer.server.port=3002
-      
-      -traefik.http.middlewares.ak-forwardauth.forwardauth.address=http://authentik:9000/outpost.goauthentik.io/auth/traefik
-      -traefik.http.middlewares.ak-forwardauth.forwardauth.trustForwardHeader=true
-      -traefik.http.middlewares.ak-forwardauth.forwardauth.authResponseHeaders=X-authentik-username,X-authentik-groups,X-authentik-email,X-authentik-jwt
-      -traefik.http.routers.rybbit-client.middlewares=ak-forwardauth
+      # 🔁 Router للواجهة (كل شيء على eye.github.sa)
+      - "traefik.http.routers.eye-client.rule=Host(`eye.github.sa`)"
+      - "traefik.http.routers.eye-client.entrypoints=https"
+      - "traefik.http.routers.eye-client.tls=true"
+      - "traefik.http.routers.eye-client.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.eye-client.priority=50"
+      - "traefik.http.services.eye-client.loadbalancer.server.port=3002"
+
+      # 🔐 هنا السحر: نربطه بالميدل وير الجاهز من auth.github.sa
+      # هذا هو نفسه اللي في مثال whoami: authentik@docker
+      - "traefik.http.routers.eye-client.middlewares=authentik@docker"
 
     restart: unless-stopped
