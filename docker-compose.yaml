@@ -121,7 +121,7 @@ services:
       - "traefik.http.services.eye-client.loadbalancer.server.port=3002"
 
       # 👇 هذا هو السطر الوحيد اللي يضيف Authentik
-      - "traefik.http.routers.eye-client.middlewares=authentik-forwardauth@file"
+      - "traefik.http.routers.eye-client.middlewares=authentik-forwardauth@docker"
 
 
     restart: unless-stopped
